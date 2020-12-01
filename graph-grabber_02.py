@@ -65,6 +65,7 @@ class mywindow(QtWidgets.QMainWindow):
         data_extracted_list = []
         x_extracted, y_extracted = None, None
         x_log, y_log = 0, 0
+        self.ui.infobox.append('Data reset')
         
     def load_image(self):
         options = QtWidgets.QFileDialog.Options()
@@ -82,7 +83,6 @@ class mywindow(QtWidgets.QMainWindow):
         print('x:%i'%x_select + ' y:%i'%y_select)
         self.ui.label_x_select.setText(str(x_select)) 
         self.ui.label_y_select.setText(str(y_select))
-        
         global x_calibrated, y_calibrated
         if x_calibrated == 1 and y_calibrated == 1:
             global x_origin_px, x_scale, y_origin_px, y_scale, x_origin_unit, y_origin_unit, x_log, y_log
@@ -90,7 +90,7 @@ class mywindow(QtWidgets.QMainWindow):
                 x_extracted = x_origin_unit+((x_select-x_origin_px)*x_scale)
                 self.ui.label_x_extract.setText(str(format(x_extracted, '.2f')))
             else:
-                modulo_tick = x_select%x_scale
+                modulo_tick = int(x_select/x_scale)
                 last_major_tick = modulo_tick * x_scale
                 minor_tick =(x_select-x_origin_px-(modulo_tick*x_scale))/x_scale
                 x_extracted = (x_origin_unit*pow(10,modulo_tick))*pow(10,minor_tick)
@@ -98,10 +98,16 @@ class mywindow(QtWidgets.QMainWindow):
             if y_log == 0:
                 y_extracted = y_origin_unit+((y_select-y_origin_px)*y_scale)
                 self.ui.label_y_extract.setText(str(format(y_extracted, '.2f')))
+            else:
+                modulo_tick = int(y_select/y_scale)
+                last_major_tick = modulo_tick * y_scale
+                minor_tick =(y_select-y_origin_px-(modulo_tick*y_scale))/y_scale
+                y_extracted = (y_origin_unit*pow(10,modulo_tick))*pow(10,minor_tick)
+                self.ui.label_y_extract.setText(str(format(y_extracted, '.2f')))
             if event.button() == Qt.RightButton:
                 self.store_data_point()
                 self.ui.infobox.append('Saved x: %s'%(str(x_extracted)) + ' y: %s'%(str(y_extracted)))
-            
+
         
     def calibrate(self):
         btn_name=self.sender()

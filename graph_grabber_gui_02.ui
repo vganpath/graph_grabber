@@ -18,7 +18,7 @@
     <property name="geometry">
      <rect>
       <x>290</x>
-      <y>820</y>
+      <y>800</y>
       <width>291</width>
       <height>120</height>
      </rect>
@@ -187,8 +187,8 @@
    <widget class="QWidget" name="verticalLayoutWidget">
     <property name="geometry">
      <rect>
-      <x>40</x>
-      <y>830</y>
+      <x>50</x>
+      <y>780</y>
       <width>160</width>
       <height>120</height>
      </rect>
@@ -204,7 +204,7 @@
      <item>
       <widget class="QPushButton" name="btn_load">
        <property name="text">
-        <string>Load</string>
+        <string>Load image</string>
        </property>
       </widget>
      </item>
@@ -246,8 +246,11 @@
       <height>751</height>
      </rect>
     </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
     <property name="text">
-     <string>TextLabel</string>
+     <string/>
     </property>
     <property name="scaledContents">
      <bool>true</bool>
@@ -258,9 +261,41 @@
      <rect>
       <x>630</x>
       <y>910</y>
-      <width>341</width>
+      <width>351</width>
       <height>41</height>
      </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_6">
+    <property name="geometry">
+     <rect>
+      <x>290</x>
+      <y>780</y>
+      <width>281</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Calibration:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_7">
+    <property name="geometry">
+     <rect>
+      <x>50</x>
+      <y>910</y>
+      <width>211</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::Panel</enum>
+    </property>
+    <property name="text">
+     <string>Right click to save data point after calibration.</string>
+    </property>
+    <property name="wordWrap">
+     <bool>true</bool>
     </property>
    </widget>
   </widget>
