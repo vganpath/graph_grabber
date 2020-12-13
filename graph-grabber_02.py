@@ -11,9 +11,12 @@ import math as m
 from graph_grabber_gui_02 import * #UI file
 
 from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QTextEdit, QLabel
-from PyQt5.QtCore import QTime, QTimer, Qt
+from PyQt5.QtCore import QTime, QTimer, Qt, QPoint
 from PyQt5.QtGui import QPalette, QColor, QPixmap
 from PyQt5 import QtWidgets,uic
+
+from pynput.mouse import Listener
+import threading
 
 x_origin_px, y_origin_px = 10,10
 x_origin_unit,y_origin_unit = 0,0
@@ -44,7 +47,30 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.btn_print_data.clicked.connect(self.print_extracted_data)
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CrossCursor)
         self.reset()
-        
+        # self.ui.pushButton.clicked.connect(self.reSize_image)
+        self.ScaleFactor = 1.25
+        self.pixmap = None
+        self.filename = None
+
+    def wheelEvent(self, event):
+        d = event.angleDelta().y()
+        x = event.position().x()
+        y = event.position().y()
+        # print(d)
+        # print(x)
+        self.reSize_image(d,x,y)
+
+    def reSize_image(self,scroll,x,y):
+        name = 'label_3'
+        icon_label = self.findChild(QLabel, name)
+        # print(icon_label.pixmap().size())
+        if scroll>0:
+            self.ScaleFactor = self.ScaleFactor * 1.25
+            icon_label.resize(self.ScaleFactor * icon_label.pixmap().size())
+        elif scroll<0:
+            self.ScaleFactor = self.ScaleFactor * 0.75
+            icon_label.resize(self.ScaleFactor * icon_label.pixmap().size())
+
     def reset(self):
         #Clearing labels
         self.ui.label_x_select.clear() 
@@ -70,12 +96,43 @@ class mywindow(QtWidgets.QMainWindow):
     def load_image(self):
         options = QtWidgets.QFileDialog.Options()
         options |= QtWidgets.QFileDialog.DontUseNativeDialog
-        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(None,"QFileDialog.getOpenFileName()","","png(*.png),jpg(*.jpg)",options=options)
-        if fileName:
+        self.filename, _ = QtWidgets.QFileDialog.getOpenFileName(None,"QFileDialog.getOpenFileName()","","png(*.png),jpg(*.jpg)",options=options)
+        if self.filename:
             name='label_3'
             icon_label=self.findChild(QLabel,name)
-            pixmap = QPixmap(fileName)
-            icon_label.setPixmap(pixmap)
+            self.pixmap = QPixmap(self.filename)
+            icon_label.setScaledContents(True)
+            icon_label.setPixmap(self.pixmap)
+
+    def mark_point(self,x,y):
+        name = 'label_3'
+        icon_label = self.findChild(QLabel, name)
+        # convert image file into pixmap
+        self.pixmap = QPixmap(self.filename)
+        #print(self.pixmap.size())
+        image_width = self.pixmap.size().width()
+        image_height = self.pixmap.size().height()
+        scale_width =1231/image_width
+        scale_height = 751/image_height
+        icon_label.setScaledContents(True)
+
+        # create painter instance with pixmap
+        self.painterInstance = QtGui.QPainter(self.pixmap)
+        #self.painterInstance.begin(icon_label)
+
+        # set rectangle color and thickness
+        self.penRectangle = QtGui.QPen(QtCore.Qt.green)
+        self.penRectangle.setWidth(5)
+
+        # draw rectangle on painter
+        self.painterInstance.setPen(self.penRectangle)
+        self.painterInstance.drawPoint((x-50)/scale_width, (y-20)/scale_height)
+
+        # set pixmap onto the label widget
+        icon_label.setPixmap(self.pixmap)
+        icon_label.show()
+        self.painterInstance.end()
+
 
     def mousePressEvent(self, event):
         global x_select, y_select, x_extracted, y_extracted
@@ -83,6 +140,7 @@ class mywindow(QtWidgets.QMainWindow):
         print('x:%i'%x_select + ' y:%i'%y_select)
         self.ui.label_x_select.setText(str(x_select)) 
         self.ui.label_y_select.setText(str(y_select))
+        self.mark_point(x_select,y_select)
         global x_calibrated, y_calibrated
         if x_calibrated == 1 and y_calibrated == 1:
             global x_origin_px, x_scale, y_origin_px, y_scale, x_origin_unit, y_origin_unit, x_log, y_log
@@ -185,3 +243,4 @@ win = mywindow()
 win.show()
  
 sys.exit(app.exec())
+
