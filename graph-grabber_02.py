@@ -10,22 +10,19 @@ import sys
 import math as m
 from graph_grabber_gui_02 import * #UI file
 
-from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QTextEdit, QLabel
+from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QTextEdit, QLabel, QWidget, QScrollArea
 from PyQt5.QtCore import QTime, QTimer, Qt, QPoint
 from PyQt5.QtGui import QPalette, QColor, QPixmap
 from PyQt5 import QtWidgets,uic
 
-from pynput.mouse import Listener
-import threading
-
-x_origin_px, y_origin_px = 10,10
-x_origin_unit,y_origin_unit = 0,0
-x_scale, y_scale = 1,1
-x_select, y_select = 1,1
-x_calibrated, y_calibrated = 0,0
+x_origin_px, y_origin_px = 10, 10
+x_origin_unit, y_origin_unit = 0, 0
+x_scale, y_scale = 1, 1
+x_select, y_select = 1, 1
+x_calibrated, y_calibrated = 0, 0
 data_extracted_list = []
 x_extracted, y_extracted = None, None
-x_log, y_log = 0,0
+x_log, y_log = 0, 0
 
 class mywindow(QtWidgets.QMainWindow):
  
@@ -43,33 +40,30 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.btn_y1.clicked.connect(self.calibrate)
         self.ui.btn_y2.clicked.connect(self.calibrate)
         self.ui.btn_reset.clicked.connect(self.reset)
+        self.ui.btn_ScaleImage.clicked.connect(self.fit_image)
+        self.ui.btn_clear_image.clicked.connect(self.clear_marked_points)
         self.ui.btn_delete_data.clicked.connect(self.delete_last_point)
         self.ui.btn_print_data.clicked.connect(self.print_extracted_data)
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CrossCursor)
         self.reset()
         # self.ui.pushButton.clicked.connect(self.reSize_image)
-        self.ScaleFactor = 1.25
+        self.ScaleFactor = 1.05
         self.pixmap = None
         self.filename = None
+        self.image_width, self.image_height = None, None
 
-    def wheelEvent(self, event):
-        d = event.angleDelta().y()
-        x = event.position().x()
-        y = event.position().y()
-        # print(d)
-        # print(x)
-        self.reSize_image(d,x,y)
+        #Setting label and widget geometry
+        self.widget_width, self.widget_height = 1300, 790
+        self.image_label_width, self.image_label_height = 1230, 750  # self.icon_label.size().width()
+        self.widget_pos_x, self.widget_pos_y  = 30, 10 #self.widget_id.x()  # 30
+        self.label_pos_x, self.label_pos_y  = 10, 10  # self.icon_label.x()  # 10
 
-    def reSize_image(self,scroll,x,y):
-        name = 'label_3'
-        icon_label = self.findChild(QLabel, name)
-        # print(icon_label.pixmap().size())
-        if scroll>0:
-            self.ScaleFactor = self.ScaleFactor * 1.25
-            icon_label.resize(self.ScaleFactor * icon_label.pixmap().size())
-        elif scroll<0:
-            self.ScaleFactor = self.ScaleFactor * 0.75
-            icon_label.resize(self.ScaleFactor * icon_label.pixmap().size())
+        name_label = 'label_3'
+        name_widget = 'widget'
+        self.icon_label = self.findChild(QLabel, name_label)
+        self.widget_id = self.findChild(QWidget, name_widget)
+        self.widget_id.setGeometry(self.widget_pos_x, self.widget_pos_y, self.widget_width, self.widget_height)
+        self.icon_label.setGeometry(self.label_pos_x, self.label_pos_y, self.image_label_width, self.image_label_height)
 
     def reset(self):
         #Clearing labels
@@ -90,31 +84,57 @@ class mywindow(QtWidgets.QMainWindow):
         x_calibrated, y_calibrated = 0,0
         data_extracted_list = []
         x_extracted, y_extracted = None, None
+        self.image_width, self.image_height = None, None
         x_log, y_log = 0, 0
+        self.ScaleFactor = 1.05
         self.ui.infobox.append('Data reset')
-        
+
+    def wheelEvent(self, event):
+        d = event.angleDelta().y()
+        x = event.position().x()
+        y = event.position().y()
+        self.reSize_image(d,x,y)
+
+    def reSize_image(self,scroll,x,y):
+        # print(icon_label.pixmap().size())
+        if scroll>0:
+            #self.icon_label.resize(1.05 * self.icon_label.size())
+            offset_x = (x-self.widget_pos_x-self.label_pos_x) * (0.05)
+            offset_y = (y-self.widget_pos_y-self.label_pos_y) * (0.05)
+            label_width = (self.icon_label.size().width())*1.05
+            label_height = (self.icon_label.size().height())*1.05
+            print(self.icon_label.size().width() )
+            print(self.icon_label.size().height())
+            self.icon_label.setGeometry(self.label_pos_x-offset_x, self.label_pos_y-offset_y, label_width, label_height)
+            print(self.icon_label.size().width() )
+            print(self.icon_label.size().height())
+        elif scroll<0:
+            self.icon_label.resize(0.95 * self.icon_label.size())
+
+    def fit_image(self):
+        self.icon_label.setGeometry(self.label_pos_x, self.label_pos_y, self.image_label_width, self.image_label_height)
+        self.ScaleFactor = 1.05
+
     def load_image(self):
         options = QtWidgets.QFileDialog.Options()
         options |= QtWidgets.QFileDialog.DontUseNativeDialog
         self.filename, _ = QtWidgets.QFileDialog.getOpenFileName(None,"QFileDialog.getOpenFileName()","","png(*.png),jpg(*.jpg)",options=options)
         if self.filename:
-            name='label_3'
-            icon_label=self.findChild(QLabel,name)
+            # name = 'label_3'
+            # icon_label = self.findChild(QLabel, name)
             self.pixmap = QPixmap(self.filename)
-            icon_label.setScaledContents(True)
-            icon_label.setPixmap(self.pixmap)
+            self.image_width = self.pixmap.size().width()
+            self.image_height = self.pixmap.size().height()
+            self.icon_label.setScaledContents(True)
+            self.icon_label.setPixmap(self.pixmap)
+
+    def clear_marked_points(self):
+        self.pixmap = QPixmap(self.filename)
+        self.icon_label.setPixmap(self.pixmap)
 
     def mark_point(self,x,y):
-        name = 'label_3'
-        icon_label = self.findChild(QLabel, name)
-        # convert image file into pixmap
-        self.pixmap = QPixmap(self.filename)
-        #print(self.pixmap.size())
-        image_width = self.pixmap.size().width()
-        image_height = self.pixmap.size().height()
-        scale_width =1231/image_width
-        scale_height = 751/image_height
-        icon_label.setScaledContents(True)
+        scale_width = self.icon_label.size().width()/self.image_width
+        scale_height = self.icon_label.size().height()/self.image_height
 
         # create painter instance with pixmap
         self.painterInstance = QtGui.QPainter(self.pixmap)
@@ -125,12 +145,14 @@ class mywindow(QtWidgets.QMainWindow):
         self.penRectangle.setWidth(5)
 
         # draw rectangle on painter
+        offset_x = self.widget_pos_x + self.label_pos_x
+        offset_y = self.widget_pos_y + self.label_pos_y
         self.painterInstance.setPen(self.penRectangle)
-        self.painterInstance.drawPoint((x-50)/scale_width, (y-20)/scale_height)
+        self.painterInstance.drawPoint((x-offset_x)/scale_width, (y-offset_y)/scale_height)
 
         # set pixmap onto the label widget
-        icon_label.setPixmap(self.pixmap)
-        icon_label.show()
+        self.icon_label.setPixmap(self.pixmap)
+        self.icon_label.show()
         self.painterInstance.end()
 
 
@@ -215,6 +237,7 @@ class mywindow(QtWidgets.QMainWindow):
             self.ui.label_status.setText('Calibrated!!!')
             self.ui.infobox.append('Calibration done!')
             self.ui.btn_delete_data.setEnabled(True)
+            self.clear_marked_points()
 
     def store_data_point(self):
         global data_extracted_list, x_extracted, y_extracted
