@@ -95,17 +95,17 @@ class mywindow(QtWidgets.QMainWindow):
     #     y = event.position().y()
     #     self.reSize_image(d,x,y)
 
-    def reSize_image(self,scroll,x,y):
-        # print(icon_label.pixmap().size())
-        if scroll>0:
-            #self.icon_label.resize(1.05 * self.icon_label.size())
-            offset_x = (x-self.widget_pos_x-self.label_pos_x) * (0.05)
-            offset_y = (y-self.widget_pos_y-self.label_pos_y) * (0.05)
-            label_width = (self.icon_label.size().width())*1.05
-            label_height = (self.icon_label.size().height())*1.05
-            self.icon_label.setGeometry(self.label_pos_x-offset_x, self.label_pos_y-offset_y, label_width, label_height)
-        elif scroll<0:
-            self.icon_label.resize(0.95 * self.icon_label.size())
+    # def reSize_image(self,scroll,x,y):
+    #     # print(icon_label.pixmap().size())
+    #     if scroll>0:
+    #         #self.icon_label.resize(1.05 * self.icon_label.size())
+    #         offset_x = (x-self.widget_pos_x-self.label_pos_x) * (0.05)
+    #         offset_y = (y-self.widget_pos_y-self.label_pos_y) * (0.05)
+    #         label_width = (self.icon_label.size().width())*1.05
+    #         label_height = (self.icon_label.size().height())*1.05
+    #         self.icon_label.setGeometry(self.label_pos_x-offset_x, self.label_pos_y-offset_y, label_width, label_height)
+    #     elif scroll<0:
+    #         self.icon_label.resize(0.95 * self.icon_label.size())
 
     def fit_image(self):
         self.icon_label.setGeometry(self.label_pos_x, self.label_pos_y, self.image_label_width, self.image_label_height)
