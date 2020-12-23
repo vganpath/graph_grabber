@@ -105,6 +105,7 @@ class Ui_MainWindow(object):
         self.btn_load.setObjectName("btn_load")
         self.verticalLayout.addWidget(self.btn_load)
         self.btn_ScaleImage = QtWidgets.QPushButton(self.verticalLayoutWidget)
+        self.btn_ScaleImage.setEnabled(False)
         self.btn_ScaleImage.setObjectName("btn_ScaleImage")
         self.verticalLayout.addWidget(self.btn_ScaleImage)
         self.btn_clear_image = QtWidgets.QPushButton(self.verticalLayoutWidget)
