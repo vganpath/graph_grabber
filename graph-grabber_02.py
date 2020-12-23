@@ -89,11 +89,11 @@ class mywindow(QtWidgets.QMainWindow):
         self.ScaleFactor = 1.05
         self.ui.infobox.append('Data reset')
 
-    def wheelEvent(self, event):
-        d = event.angleDelta().y()
-        x = event.position().x()
-        y = event.position().y()
-        self.reSize_image(d,x,y)
+    # def wheelEvent(self, event):
+    #     d = event.angleDelta().y()
+    #     x = event.position().x()
+    #     y = event.position().y()
+    #     self.reSize_image(d,x,y)
 
     def reSize_image(self,scroll,x,y):
         # print(icon_label.pixmap().size())
@@ -103,11 +103,7 @@ class mywindow(QtWidgets.QMainWindow):
             offset_y = (y-self.widget_pos_y-self.label_pos_y) * (0.05)
             label_width = (self.icon_label.size().width())*1.05
             label_height = (self.icon_label.size().height())*1.05
-            print(self.icon_label.size().width() )
-            print(self.icon_label.size().height())
             self.icon_label.setGeometry(self.label_pos_x-offset_x, self.label_pos_y-offset_y, label_width, label_height)
-            print(self.icon_label.size().width() )
-            print(self.icon_label.size().height())
         elif scroll<0:
             self.icon_label.resize(0.95 * self.icon_label.size())
 
