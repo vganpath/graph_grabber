@@ -8,9 +8,12 @@ Created on Mon Oct 26 19:53:28 2020
 import sys
 import math as m
 import subprocess
-subprocess.call("pyuic5 graph_grabber_gui_02.ui -o graph_grabber_gui_02.py", shell=True)
-from graph_grabber_gui_02 import * #UI file
+try:
+    subprocess.call("pyuic5 graph_grabber_gui_02.ui -o graph_grabber_gui_02.py", shell=True)
+except:
+    print('Error: You are not using ubuntu and/or you have not installed pyuic5 module. The .ui file could be outdated.')
 
+from graph_grabber_gui_02 import * #UI file
 from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QTextEdit, QLabel, QWidget, QScrollArea
 from PyQt5.QtCore import QTime, QTimer, Qt, QPoint
 from PyQt5.QtGui import QPalette, QColor, QPixmap
