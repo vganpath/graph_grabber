@@ -5,9 +5,10 @@ Created on Mon Oct 26 19:53:28 2020
 
 @author: vgk
 """
-import os
 import sys
 import math as m
+import subprocess
+subprocess.call("pyuic5 graph_grabber_gui_02.ui -o graph_grabber_gui_02.py", shell=True)
 from graph_grabber_gui_02 import * #UI file
 
 from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QTextEdit, QLabel, QWidget, QScrollArea
@@ -114,7 +115,7 @@ class mywindow(QtWidgets.QMainWindow):
     def load_image(self):
         options = QtWidgets.QFileDialog.Options()
         options |= QtWidgets.QFileDialog.DontUseNativeDialog
-        self.filename, _ = QtWidgets.QFileDialog.getOpenFileName(None,"QFileDialog.getOpenFileName()","","png(*.png),jpg(*.jpg)",options=options)
+        self.filename, _ = QtWidgets.QFileDialog.getOpenFileName(None,"QFileDialog.getOpenFileName()","","",options=options) #png(*.png),jpg(*.jpg)
         if self.filename:
             # name = 'label_3'
             # icon_label = self.findChild(QLabel, name)
@@ -153,38 +154,41 @@ class mywindow(QtWidgets.QMainWindow):
 
 
     def mousePressEvent(self, event):
-        global x_select, y_select, x_extracted, y_extracted
-        x_select, y_select = event.x(), event.y()
-        print('x:%i'%x_select + ' y:%i'%y_select)
-        self.ui.label_x_select.setText(str(x_select)) 
-        self.ui.label_y_select.setText(str(y_select))
-        self.mark_point(x_select,y_select)
-        global x_calibrated, y_calibrated
-        if x_calibrated == 1 and y_calibrated == 1:
-            global x_origin_px, x_scale, y_origin_px, y_scale, x_origin_unit, y_origin_unit, x_log, y_log
-            if x_log == 0:
-                x_extracted = x_origin_unit+((x_select-x_origin_px)*x_scale)
-                self.ui.label_x_extract.setText(str(format(x_extracted, '.2f')))
-            else:
-                modulo_tick = int(x_select/x_scale)
-                last_major_tick = modulo_tick * x_scale
-                minor_tick =(x_select-x_origin_px-(modulo_tick*x_scale))/x_scale
-                x_extracted = (x_origin_unit*pow(10,modulo_tick))*pow(10,minor_tick)
-                self.ui.label_x_extract.setText(str(format(x_extracted, '.2f')))
-            if y_log == 0:
-                y_extracted = y_origin_unit+((y_select-y_origin_px)*y_scale)
-                self.ui.label_y_extract.setText(str(format(y_extracted, '.2f')))
-            else:
-                modulo_tick = int(y_select/y_scale)
-                last_major_tick = modulo_tick * y_scale
-                minor_tick =(y_select-y_origin_px-(modulo_tick*y_scale))/y_scale
-                y_extracted = (y_origin_unit*pow(10,modulo_tick))*pow(10,minor_tick)
-                self.ui.label_y_extract.setText(str(format(y_extracted, '.2f')))
-            if event.button() == Qt.RightButton:
-                self.store_data_point()
-                self.ui.infobox.append('Saved x: %s'%(str(x_extracted)) + ' y: %s'%(str(y_extracted)))
+        if self.pixmap is not None:
+            x_min, y_min = self.widget_pos_x + self.label_pos_x, self.widget_pos_y + self.label_pos_y
+            x_max, y_max = x_min + self.icon_label.size().width(), y_min + self.icon_label.size().height()
+            if event.x() > x_min and event.x() < x_max and event.y() > y_min and event.y() < y_max:
+                global x_select, y_select, x_extracted, y_extracted
+                x_select, y_select = event.x(), event.y()
+                print('x:%i'%x_select + ' y:%i'%y_select)
+                self.ui.label_x_select.setText(str(x_select))
+                self.ui.label_y_select.setText(str(y_select))
+                self.mark_point(x_select,y_select)
+                global x_calibrated, y_calibrated
+                if x_calibrated == 1 and y_calibrated == 1:
+                    global x_origin_px, x_scale, y_origin_px, y_scale, x_origin_unit, y_origin_unit, x_log, y_log
+                    if x_log == 0:
+                        x_extracted = x_origin_unit+((x_select-x_origin_px)*x_scale)
+                        self.ui.label_x_extract.setText(str(format(x_extracted, '.2f')))
+                    else:
+                        modulo_tick = int(x_select/x_scale)
+                        last_major_tick = modulo_tick * x_scale
+                        minor_tick =(x_select-x_origin_px-(modulo_tick*x_scale))/x_scale
+                        x_extracted = (x_origin_unit*pow(10,modulo_tick))*pow(10,minor_tick)
+                        self.ui.label_x_extract.setText(str(format(x_extracted, '.2f')))
+                    if y_log == 0:
+                        y_extracted = y_origin_unit+((y_select-y_origin_px)*y_scale)
+                        self.ui.label_y_extract.setText(str(format(y_extracted, '.2f')))
+                    else:
+                        modulo_tick = int(y_select/y_scale)
+                        last_major_tick = modulo_tick * y_scale
+                        minor_tick =(y_select-y_origin_px-(modulo_tick*y_scale))/y_scale
+                        y_extracted = (y_origin_unit*pow(10,modulo_tick))*pow(10,minor_tick)
+                        self.ui.label_y_extract.setText(str(format(y_extracted, '.2f')))
+                    if event.button() == Qt.RightButton:
+                        self.store_data_point()
+                        self.ui.infobox.append('Saved x: %s'%(str(x_extracted)) + ' y: %s'%(str(y_extracted)))
 
-        
     def calibrate(self):
         btn_name=self.sender()
         global x_select, y_select, x_origin_unit, y_origin_unit, x_origin_px, y_origin_px, x_scale, y_scale, x_calibrated, y_calibrated, x_log, y_log
