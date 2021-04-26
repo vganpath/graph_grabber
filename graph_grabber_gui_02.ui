@@ -357,6 +357,22 @@
      </item>
     </layout>
    </widget>
+   <widget class="QLabel" name="label_pixel_color">
+    <property name="geometry">
+     <rect>
+      <x>890</x>
+      <y>960</y>
+      <width>91</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::Box</enum>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

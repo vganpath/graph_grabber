@@ -19,6 +19,7 @@ from PyQt5.QtCore import QTime, QTimer, Qt, QPoint
 from PyQt5.QtGui import QPalette, QColor, QPixmap
 from PyQt5 import QtWidgets,uic
 
+
 x_origin_px, y_origin_px = 10, 10
 x_origin_unit, y_origin_unit = 0, 0
 x_scale, y_scale = 1, 1
@@ -155,6 +156,16 @@ class mywindow(QtWidgets.QMainWindow):
         self.icon_label.show()
         self.painterInstance.end()
 
+    def get_pixel_RGB(self,x_select,y_select):
+        scale_width = self.icon_label.size().width() / self.image_width
+        scale_height = self.icon_label.size().height() / self.image_height
+        offset_x = self.widget_pos_x + self.label_pos_x
+        offset_y = self.widget_pos_y + self.label_pos_y
+        x_pixel, y_pixel = (x_select - offset_x) / scale_width, (y_select - offset_y) / scale_height
+        img = self.pixmap.toImage()
+        c = img.pixel(x_pixel, y_pixel)
+        colors = QColor(c).getRgbF()
+        return 255*colors[0], 255*colors[1], 255*colors[2]
 
     def mousePressEvent(self, event):
         if self.pixmap is not None:
@@ -164,6 +175,9 @@ class mywindow(QtWidgets.QMainWindow):
                 global x_select, y_select, x_extracted, y_extracted
                 x_select, y_select = event.x(), event.y()
                 print('x:%i'%x_select + ' y:%i'%y_select)
+                R, G, B = self.get_pixel_RGB(x_select,y_select)
+                print('R: {} ; G: {} ; B: {}'.format(R, G, B))
+                self.ui.label_pixel_color.setStyleSheet("background-color:rgb({},{},{})".format(R, G, B))
                 self.ui.label_x_select.setText(str(x_select))
                 self.ui.label_y_select.setText(str(y_select))
                 self.mark_point(x_select,y_select)
