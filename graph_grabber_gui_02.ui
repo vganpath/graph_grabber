@@ -373,6 +373,19 @@
      <string/>
     </property>
    </widget>
+   <widget class="QPushButton" name="btn_GetDataPoints">
+    <property name="geometry">
+     <rect>
+      <x>990</x>
+      <y>960</y>
+      <width>121</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Get data points</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

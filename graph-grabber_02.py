@@ -5,6 +5,9 @@ Created on Mon Oct 26 19:53:28 2020
 
 @author: vgk
 """
+import cv2
+import numpy as np
+import statistics as stat
 import sys
 import math as m
 import subprocess
@@ -19,7 +22,6 @@ from PyQt5.QtCore import QTime, QTimer, Qt, QPoint
 from PyQt5.QtGui import QPalette, QColor, QPixmap
 from PyQt5 import QtWidgets,uic
 
-
 x_origin_px, y_origin_px = 10, 10
 x_origin_unit, y_origin_unit = 0, 0
 x_scale, y_scale = 1, 1
@@ -30,16 +32,16 @@ x_extracted, y_extracted = None, None
 x_log, y_log = 0, 0
 
 class mywindow(QtWidgets.QMainWindow):
- 
+
     def __init__(self):
- 
+
         super().__init__()
- 
+
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        
+
         #Assigning functions to buttons
-        self.ui.btn_load.clicked.connect(self.load_image) 
+        self.ui.btn_load.clicked.connect(self.load_image)
         self.ui.btn_x1.clicked.connect(self.calibrate)
         self.ui.btn_x2.clicked.connect(self.calibrate)
         self.ui.btn_y1.clicked.connect(self.calibrate)
@@ -49,6 +51,7 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.btn_clear_image.clicked.connect(self.clear_marked_points)
         self.ui.btn_delete_data.clicked.connect(self.delete_last_point)
         self.ui.btn_print_data.clicked.connect(self.print_extracted_data)
+        self.ui.btn_GetDataPoints.clicked.connect(self.get_data_points)
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CrossCursor)
         self.reset()
         # self.ui.pushButton.clicked.connect(self.reSize_image)
@@ -56,6 +59,8 @@ class mywindow(QtWidgets.QMainWindow):
         self.pixmap = None
         self.filename = None
         self.image_width, self.image_height = None, None
+        self.cv2image = None
+        self.RedSelect, self.GreenSelect, self.BlueSelect = None, None, None
 
         #Setting label and widget geometry
         self.widget_width, self.widget_height = 1300, 790
@@ -72,12 +77,12 @@ class mywindow(QtWidgets.QMainWindow):
 
     def reset(self):
         #Clearing labels
-        self.ui.label_x_select.clear() 
-        self.ui.label_y_select.clear() 
-        self.ui.label_x_extract.clear() 
+        self.ui.label_x_select.clear()
+        self.ui.label_y_select.clear()
+        self.ui.label_x_extract.clear()
         self.ui.label_y_extract.clear()
         self.ui.label_status.clear()
-        
+
         #Disabling buttons
         self.ui.btn_x2.setEnabled(False)
         self.ui.btn_y2.setEnabled(False)
@@ -90,6 +95,7 @@ class mywindow(QtWidgets.QMainWindow):
         data_extracted_list = []
         x_extracted, y_extracted = None, None
         self.image_width, self.image_height = None, None
+        self.RedSelect, self.GreenSelect, self.BlueSelect = None, None, None
         x_log, y_log = 0, 0
         self.ScaleFactor = 1.05
         self.ui.infobox.append('Data reset')
@@ -128,6 +134,8 @@ class mywindow(QtWidgets.QMainWindow):
             self.image_height = self.pixmap.size().height()
             self.icon_label.setScaledContents(True)
             self.icon_label.setPixmap(self.pixmap)
+            #load image using cv2
+            self.cv2image = cv2.imread(self.filename)
 
     def clear_marked_points(self):
         self.pixmap = QPixmap(self.filename)
@@ -149,7 +157,7 @@ class mywindow(QtWidgets.QMainWindow):
         offset_x = self.widget_pos_x + self.label_pos_x
         offset_y = self.widget_pos_y + self.label_pos_y
         self.painterInstance.setPen(self.penRectangle)
-        self.painterInstance.drawPoint((x-offset_x)/scale_width, (y-offset_y)/scale_height)
+        self.painterInstance.drawPoint(int((x-offset_x)/scale_width), int((y-offset_y)/scale_height))
 
         # set pixmap onto the label widget
         self.icon_label.setPixmap(self.pixmap)
@@ -161,11 +169,97 @@ class mywindow(QtWidgets.QMainWindow):
         scale_height = self.icon_label.size().height() / self.image_height
         offset_x = self.widget_pos_x + self.label_pos_x
         offset_y = self.widget_pos_y + self.label_pos_y
-        x_pixel, y_pixel = (x_select - offset_x) / scale_width, (y_select - offset_y) / scale_height
+        x_pixel, y_pixel = int((x_select - offset_x) / scale_width), int((y_select - offset_y) / scale_height)
         img = self.pixmap.toImage()
         c = img.pixel(x_pixel, y_pixel)
         colors = QColor(c).getRgbF()
+        # print('x:{} y:{}'.format(x_pixel, y_pixel))
+        # print(self.cv2image[y_pixel,x_pixel])
         return 255*colors[0], 255*colors[1], 255*colors[2]
+
+    def RGB_to_H(self,r,g,b):
+        r, g, b = r / 255.0, g / 255.0, b / 255.0
+        mx = max(r, g, b)
+        mn = min(r, g, b)
+        df = mx - mn
+        if mx == mn:
+            h = 0
+        elif mx == r:
+            h = (60 * ((g - b) / df) + 360) % 360
+        elif mx == g:
+            h = (60 * ((b - r) / df) + 120) % 360
+        elif mx == b:
+            h = (60 * ((r - g) / df) + 240) % 360
+        return int(h*0.5) #divding by 2 as required by cv2
+
+    def filter_image(self, img, H):
+        # Convert the img to HSV
+        img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+        # Limits
+        lower_limit = H - 15 if H - 15 > 0 else 0
+        upper_limit = H + 15 if H + 15 < 180 else 180
+
+        # mask
+        lower_red = np.array([lower_limit, 100, 100])
+        upper_red = np.array([upper_limit, 255, 255])
+        mask = cv2.inRange(img_hsv, lower_red, upper_red)
+
+        # Apply mask to HSV image
+        output_hsv = img_hsv.copy()
+        output_hsv[np.where(mask == 0)] = 0
+
+        return output_hsv
+
+    def get_data_points(self):
+        # print('R:{} G:{} B:{}'.format(self.RedSelect,self.GreenSelect,self.BlueSelect))
+        h = self.RGB_to_H(self.RedSelect,self.GreenSelect,self.BlueSelect)
+        # print('H:{}'.format(h))
+        points = 30
+        output_hsv = self.filter_image(self.cv2image,h)
+
+        height = output_hsv.shape[0]
+        width = output_hsv.shape[1]
+        step = int(width / points)
+        data = []
+        for i in range(0, points):
+            col = i * step
+            buffer_list_H, buffer_list_S, buffer_list_V = [], [], []
+            for row in range(0, height - 1):
+                buffer_list_H.append(output_hsv[row, col][0])
+                buffer_list_S.append(output_hsv[row, col][1])
+                buffer_list_V.append(output_hsv[row, col][2])
+            y_weight_list = []
+            for y_index in range(0, len(buffer_list_H)):
+                if buffer_list_H[y_index]>0 or buffer_list_S[y_index]>0 or buffer_list_V[y_index]>0:
+                    y_weight_list.append(y_index)
+            try:
+                y_point = int(stat.mean(y_weight_list))
+                x_point = col
+                data.append([x_point, y_point])
+            except:
+                pass
+        self.mark_data_point(data)
+        print(data)
+
+    def mark_data_point(self,data):
+
+        # create painter instance with pixmap
+        self.painterInstance = QtGui.QPainter(self.pixmap)
+
+        # set rectangle color and thickness
+        self.penRectangle = QtGui.QPen(QtCore.Qt.darkGreen)
+        self.penRectangle.setWidth(5)
+
+        # draw rectangle on painter
+        self.painterInstance.setPen(self.penRectangle)
+        for point in data:
+            self.painterInstance.drawPoint(point[0],point[1])
+
+        # set pixmap onto the label widget
+        self.icon_label.setPixmap(self.pixmap)
+        self.icon_label.show()
+        self.painterInstance.end()
 
     def mousePressEvent(self, event):
         if self.pixmap is not None:
@@ -174,10 +268,10 @@ class mywindow(QtWidgets.QMainWindow):
             if event.x() > x_min and event.x() < x_max and event.y() > y_min and event.y() < y_max:
                 global x_select, y_select, x_extracted, y_extracted
                 x_select, y_select = event.x(), event.y()
-                print('x:%i'%x_select + ' y:%i'%y_select)
-                R, G, B = self.get_pixel_RGB(x_select,y_select)
-                print('R: {} ; G: {} ; B: {}'.format(R, G, B))
-                self.ui.label_pixel_color.setStyleSheet("background-color:rgb({},{},{})".format(R, G, B))
+                # print('x:%i'%x_select + ' y:%i'%y_select)
+                self.RedSelect, self.GreenSelect, self.BlueSelect = self.get_pixel_RGB(x_select,y_select)
+                # print('R: {} ; G: {} ; B: {}'.format(self.RedSelect, self.GreenSelect, self.BlueSelect))
+                self.ui.label_pixel_color.setStyleSheet("background-color:rgb({},{},{})".format(self.RedSelect, self.GreenSelect, self.BlueSelect))
                 self.ui.label_x_select.setText(str(x_select))
                 self.ui.label_y_select.setText(str(y_select))
                 self.mark_point(x_select,y_select)
