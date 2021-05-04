@@ -52,6 +52,8 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.btn_delete_data.clicked.connect(self.delete_last_point)
         self.ui.btn_print_data.clicked.connect(self.print_extracted_data)
         self.ui.btn_GetDataPoints.clicked.connect(self.get_data_points)
+        self.ui.btn_BottomLeft.clicked.connect(self.DataExtractionLimits)
+        self.ui.btn_TopRight.clicked.connect(self.DataExtractionLimits)
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CrossCursor)
         self.reset()
         # self.ui.pushButton.clicked.connect(self.reSize_image)
@@ -96,6 +98,7 @@ class mywindow(QtWidgets.QMainWindow):
         x_extracted, y_extracted = None, None
         self.image_width, self.image_height = None, None
         self.RedSelect, self.GreenSelect, self.BlueSelect = None, None, None
+        self.GetDataLimit1, self.GetDataLimit2 = None, None
         x_log, y_log = 0, 0
         self.ScaleFactor = 1.05
         self.ui.infobox.append('Data reset')
@@ -164,12 +167,16 @@ class mywindow(QtWidgets.QMainWindow):
         self.icon_label.show()
         self.painterInstance.end()
 
-    def get_pixel_RGB(self,x_select,y_select):
+    def LabelToImageCoordinates(self,x_select, y_select):
         scale_width = self.icon_label.size().width() / self.image_width
         scale_height = self.icon_label.size().height() / self.image_height
         offset_x = self.widget_pos_x + self.label_pos_x
         offset_y = self.widget_pos_y + self.label_pos_y
         x_pixel, y_pixel = int((x_select - offset_x) / scale_width), int((y_select - offset_y) / scale_height)
+        return x_pixel, y_pixel
+
+    def get_pixel_RGB(self,x_select,y_select):
+        x_pixel, y_pixel = self.LabelToImageCoordinates(x_select,y_select)
         img = self.pixmap.toImage()
         c = img.pixel(x_pixel, y_pixel)
         colors = QColor(c).getRgbF()
@@ -179,60 +186,95 @@ class mywindow(QtWidgets.QMainWindow):
 
     def RGB_to_H(self,r,g,b):
         r, g, b = r / 255.0, g / 255.0, b / 255.0
-        mx = max(r, g, b)
-        mn = min(r, g, b)
-        df = mx - mn
-        if mx == mn:
-            h = 0
-        elif mx == r:
-            h = (60 * ((g - b) / df) + 360) % 360
-        elif mx == g:
-            h = (60 * ((b - r) / df) + 120) % 360
-        elif mx == b:
-            h = (60 * ((r - g) / df) + 240) % 360
-        return int(h*0.5) #divding by 2 as required by cv2
+        if r<0.05 and g<0.05 and b<0.05:
+            h,s,v = 0,0,0
+        else:
+            mx = max(r, g, b)
+            mn = min(r, g, b)
+            df = mx - mn
+            if mx == mn:
+                h = 0
+            elif mx == r:
+                h = (60 * ((g - b) / df) + 360) % 360
+            elif mx == g:
+                h = (60 * ((b - r) / df) + 120) % 360
+            elif mx == b:
+                h = (60 * ((r - g) / df) + 240) % 360
+            s, v =255, 255
+        return int(h*0.5), s, v #divding h by 2 as required by cv2
 
-    def filter_image(self, img, H):
+    def DataExtractionLimits(self):
+        global x_select, y_select
+        x_pixel, y_pixel = self.LabelToImageCoordinates(x_select, y_select)
+        sender = self.sender().text()
+        if sender.find('Bottom') != -1:
+            self.GetDataLimit1 = None
+            self.GetDataLimit1 = [x_pixel,y_pixel]
+        else:
+            self.GetDataLimit2 = None
+            self.GetDataLimit2 = [x_pixel,y_pixel]
+
+    def filter_image(self, img, H, S, V):
         # Convert the img to HSV
         img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
         # Limits
-        lower_limit = H - 15 if H - 15 > 0 else 0
-        upper_limit = H + 15 if H + 15 < 180 else 180
+        H1 = H - 15 if H - 15 > 0 else 0
+        H2 = H + 15 if H + 15 < 180 else 180
 
-        # mask
-        lower_red = np.array([lower_limit, 100, 100])
-        upper_red = np.array([upper_limit, 255, 255])
-        mask = cv2.inRange(img_hsv, lower_red, upper_red)
-
-        # Apply mask to HSV image
-        output_hsv = img_hsv.copy()
-        output_hsv[np.where(mask == 0)] = 0
+        if H==0 and S==0 and V==0:
+            # mask
+            lower_red = np.array([0, 0, 0])
+            upper_red = np.array([100, 10, 10])
+            mask = cv2.inRange(img_hsv, lower_red, upper_red)
+            # Apply mask to HSV image
+            output_hsv_1 = img_hsv.copy()
+            output_hsv_1[np.where(mask == 0)] = [90, 255, 255]
+            output_hsv_1[np.where(mask == 255)] = [0, 255, 255]
+            lower2 = np.array([0, 255, 255])
+            upper2 = np.array([5, 255, 255])
+            mask2 = cv2.inRange(output_hsv_1, lower2, upper2)
+            output_hsv = output_hsv_1.copy()
+            output_hsv[np.where(mask2 == 0)] = 0
+        else:
+            # mask
+            lower_red = np.array([H1, 100, 100])
+            upper_red = np.array([H2, 255, 255])
+            mask = cv2.inRange(img_hsv, lower_red, upper_red)
+            # Apply mask to HSV image
+            output_hsv = img_hsv.copy()
+            output_hsv[np.where(mask == 0)] = 0
 
         return output_hsv
 
     def get_data_points(self):
-        # print('R:{} G:{} B:{}'.format(self.RedSelect,self.GreenSelect,self.BlueSelect))
-        h = self.RGB_to_H(self.RedSelect,self.GreenSelect,self.BlueSelect)
+        print('R:{} G:{} B:{}'.format(self.RedSelect,self.GreenSelect,self.BlueSelect))
+        h, s, v = self.RGB_to_H(self.RedSelect,self.GreenSelect,self.BlueSelect)
         # print('H:{}'.format(h))
-        points = 30
-        output_hsv = self.filter_image(self.cv2image,h)
-
-        height = output_hsv.shape[0]
-        width = output_hsv.shape[1]
-        step = int(width / points)
+        output_hsv = self.filter_image(self.cv2image,h,s,v)
+        points = int(self.ui.lineEdit_DataPoints.text())
+        print('Extracting {} data points'.format(points))
+        if self.GetDataLimit1 is None and self.GetDataLimit2 is None:
+            height_min, width_min = 0, 0
+            height_max = output_hsv.shape[0]
+            width_max = output_hsv.shape[1]
+        else:
+            height_min, height_max = min([self.GetDataLimit1[1],self.GetDataLimit2[1]]), max([self.GetDataLimit1[1],self.GetDataLimit2[1]])
+            width_min, width_max = min([self.GetDataLimit1[0], self.GetDataLimit2[0]]), max([self.GetDataLimit1[0], self.GetDataLimit2[0]])
+        step = int((width_max-width_min) / points)
         data = []
         for i in range(0, points):
-            col = i * step
-            buffer_list_H, buffer_list_S, buffer_list_V = [], [], []
-            for row in range(0, height - 1):
+            col = width_min + i * step
+            buffer_list_H, buffer_list_S, buffer_list_V, buffer_list_row = [], [], [], []
+            for row in range(height_min, height_max - 1):
                 buffer_list_H.append(output_hsv[row, col][0])
                 buffer_list_S.append(output_hsv[row, col][1])
                 buffer_list_V.append(output_hsv[row, col][2])
+                buffer_list_row.append(row)
             y_weight_list = []
             for y_index in range(0, len(buffer_list_H)):
                 if buffer_list_H[y_index]>0 or buffer_list_S[y_index]>0 or buffer_list_V[y_index]>0:
-                    y_weight_list.append(y_index)
+                    y_weight_list.append(buffer_list_row[y_index])
             try:
                 y_point = int(stat.mean(y_weight_list))
                 x_point = col
@@ -248,7 +290,7 @@ class mywindow(QtWidgets.QMainWindow):
         self.painterInstance = QtGui.QPainter(self.pixmap)
 
         # set rectangle color and thickness
-        self.penRectangle = QtGui.QPen(QtCore.Qt.darkGreen)
+        self.penRectangle = QtGui.QPen(QtCore.Qt.cyan)
         self.penRectangle.setWidth(5)
 
         # draw rectangle on painter
