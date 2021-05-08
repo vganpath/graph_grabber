@@ -96,7 +96,7 @@ class mywindow(QtWidgets.QMainWindow):
         x_calibrated, y_calibrated = 0,0
         data_extracted_list = []
         x_extracted, y_extracted = None, None
-        self.image_width, self.image_height = None, None
+        # self.image_width, self.image_height = None, None
         self.RedSelect, self.GreenSelect, self.BlueSelect = None, None, None
         self.GetDataLimit1, self.GetDataLimit2 = None, None
         x_log, y_log = 0, 0
@@ -145,27 +145,31 @@ class mywindow(QtWidgets.QMainWindow):
         self.icon_label.setPixmap(self.pixmap)
 
     def mark_point(self,x,y):
-        scale_width = self.icon_label.size().width()/self.image_width
-        scale_height = self.icon_label.size().height()/self.image_height
-
         # create painter instance with pixmap
         self.painterInstance = QtGui.QPainter(self.pixmap)
-        #self.painterInstance.begin(icon_label)
 
         # set rectangle color and thickness
         self.penRectangle = QtGui.QPen(QtCore.Qt.green)
         self.penRectangle.setWidth(5)
 
         # draw rectangle on painter
-        offset_x = self.widget_pos_x + self.label_pos_x
-        offset_y = self.widget_pos_y + self.label_pos_y
         self.painterInstance.setPen(self.penRectangle)
-        self.painterInstance.drawPoint(int((x-offset_x)/scale_width), int((y-offset_y)/scale_height))
+        # self.painterInstance.drawPoint(int((x - offset_x) / scale_width), int((y - offset_y) / scale_height))
+        x_draw, y_draw = self.LabelToImageCoordinates(x,y)
+        self.painterInstance.drawPoint(x_draw, y_draw)
 
         # set pixmap onto the label widget
         self.icon_label.setPixmap(self.pixmap)
         self.icon_label.show()
         self.painterInstance.end()
+
+    def ImageToLabelCoordinates(self,x_pixel, y_pixel):
+        scale_width = self.icon_label.size().width() / self.image_width
+        scale_height = self.icon_label.size().height() / self.image_height
+        offset_x = self.widget_pos_x + self.label_pos_x
+        offset_y = self.widget_pos_y + self.label_pos_y
+        x_label, y_label = int((x_pixel*scale_width)+offset_x), int((y_pixel*scale_height)+offset_y)
+        return x_label, y_label
 
     def LabelToImageCoordinates(self,x_select, y_select):
         scale_width = self.icon_label.size().width() / self.image_width
@@ -281,17 +285,18 @@ class mywindow(QtWidgets.QMainWindow):
                 data.append([x_point, y_point])
             except:
                 pass
-        self.mark_data_point(data)
+        self.mark_data_points(data)
         global x_calibrated, y_calibrated
         if x_calibrated == 1 and y_calibrated == 1:
             data_converted = []
             rounding = int(self.ui.lineEdit_Rounding.text())
             for i in range(0,len(data)):
-                x_buffer, y_buffer = self.PixelToDataConversion(data[i][0], data[i][1])
+                x_label, y_label = self.ImageToLabelCoordinates(data[i][0], data[i][1])
+                x_buffer, y_buffer = self.PixelToDataConversion(x_label, y_label)
                 data_converted.append([round(x_buffer,rounding), round(y_buffer,rounding)])
             print(data_converted)
 
-    def mark_data_point(self,data):
+    def mark_data_points(self,data):
 
         # create painter instance with pixmap
         self.painterInstance = QtGui.QPainter(self.pixmap)
