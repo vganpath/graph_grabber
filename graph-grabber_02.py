@@ -5,11 +5,13 @@ Created on Mon Oct 26 19:53:28 2020
 
 @author: vgk
 """
+import os
 import cv2
 import numpy as np
 import statistics as stat
 import sys
 import math as m
+import pandas as pd
 import subprocess
 try:
     subprocess.call("pyuic5 graph_grabber_gui_02.ui -o graph_grabber_gui_02.py", shell=True)
@@ -17,7 +19,7 @@ except:
     print('Error: You are not using ubuntu and/or you have not installed pyuic5 module. The .ui file could be outdated.')
 
 from graph_grabber_gui_02 import * #UI file
-from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QTextEdit, QLabel, QWidget, QScrollArea
+from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QTextEdit, QLabel, QWidget, QScrollArea, QTableWidgetItem
 from PyQt5.QtCore import QTime, QTimer, Qt, QPoint
 from PyQt5.QtGui import QPalette, QColor, QPixmap
 from PyQt5 import QtWidgets,uic
@@ -54,6 +56,9 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.btn_GetDataPoints.clicked.connect(self.get_data_points)
         self.ui.btn_BottomLeft.clicked.connect(self.DataExtractionLimits)
         self.ui.btn_TopRight.clicked.connect(self.DataExtractionLimits)
+        self.ui.btn_ClearTable.clicked.connect(self.ClearTable)
+        self.ui.btn_CopyData.clicked.connect(self.ExportDataToCSV)
+        self.ui.btn_CopyData.setEnabled(False)
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CrossCursor)
         self.reset()
         # self.ui.pushButton.clicked.connect(self.reSize_image)
@@ -76,6 +81,7 @@ class mywindow(QtWidgets.QMainWindow):
         self.widget_id = self.findChild(QWidget, name_widget)
         self.widget_id.setGeometry(self.widget_pos_x, self.widget_pos_y, self.widget_width, self.widget_height)
         self.icon_label.setGeometry(self.label_pos_x, self.label_pos_y, self.image_label_width, self.image_label_height)
+        # self.AddDataToTable([[1,2],[3,4]])
 
     def reset(self):
         #Clearing labels
@@ -99,6 +105,8 @@ class mywindow(QtWidgets.QMainWindow):
         # self.image_width, self.image_height = None, None
         self.RedSelect, self.GreenSelect, self.BlueSelect = None, None, None
         self.GetDataLimit1, self.GetDataLimit2 = None, None
+        self.TableData = None
+        self.ClearTable()
         x_log, y_log = 0, 0
         self.ScaleFactor = 1.05
         self.ui.infobox.append('Data reset')
@@ -295,6 +303,7 @@ class mywindow(QtWidgets.QMainWindow):
                 x_buffer, y_buffer = self.PixelToDataConversion(x_label, y_label)
                 data_converted.append([round(x_buffer,rounding), round(y_buffer,rounding)])
             print(data_converted)
+            self.AddDataToTable(data_converted)
 
     def mark_data_points(self,data):
 
@@ -314,6 +323,44 @@ class mywindow(QtWidgets.QMainWindow):
         self.icon_label.setPixmap(self.pixmap)
         self.icon_label.show()
         self.painterInstance.end()
+
+    def ExportDataToCSV(self):
+        df = pd.DataFrame(self.TableData,columns=['x', 'y'])
+        pwd = os.getcwd()
+        path = pwd + '/Exported_data'
+        os.chdir(path)
+        df.to_csv(r'data.csv',index=False)
+        os.chdir(pwd)
+
+    def ClearTable(self):
+        self.TableData = None
+        table = self.ui.tableWidget
+        table.setColumnCount(2)
+        table.setRowCount(0)
+        self.ui.btn_CopyData.setEnabled(False)
+
+    def AddDataToTable(self, data):
+        self.TableData = None
+        self.TableData = data
+        if self.TableData is not None:
+            if len(self.TableData)>0:
+                table = self.ui.tableWidget
+                table.setColumnCount(2)
+                table.setRowCount(0)  # Clears table in gui
+                table.setRowCount(len(data))
+                row = 0
+                for tup in data:
+                    col = 0
+                    for item in tup:
+                        cellinfo = QTableWidgetItem(str(item))
+                        table.setItem(row, col, cellinfo)
+                        col += 1
+                    row += 1
+                self.ui.btn_CopyData.setEnabled(True)
+            else:
+                print('No data available')
+        else:
+            print('No data available')
 
     def mousePressEvent(self, event):
         if self.pixmap is not None:
@@ -414,6 +461,7 @@ class mywindow(QtWidgets.QMainWindow):
         if x_extracted is not None:
             if y_extracted is not None:
                 data_extracted_list.append((x_extracted,y_extracted))
+                # self.ui.columnView_data.addItem(x_extracted)
 
     def delete_last_point(self):
         global data_extracted_list
