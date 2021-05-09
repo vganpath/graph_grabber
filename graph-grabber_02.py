@@ -49,13 +49,14 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.btn_y1.clicked.connect(self.calibrate)
         self.ui.btn_y2.clicked.connect(self.calibrate)
         self.ui.btn_reset.clicked.connect(self.reset)
-        self.ui.btn_ScaleImage.clicked.connect(self.fit_image)
+        # self.ui.btn_ScaleImage.clicked.connect(self.fit_image)
         self.ui.btn_clear_image.clicked.connect(self.clear_marked_points)
         self.ui.btn_delete_data.clicked.connect(self.delete_last_point)
         self.ui.btn_print_data.clicked.connect(self.print_extracted_data)
         self.ui.btn_GetDataPoints.clicked.connect(self.get_data_points)
         self.ui.btn_BottomLeft.clicked.connect(self.DataExtractionLimits)
         self.ui.btn_TopRight.clicked.connect(self.DataExtractionLimits)
+        self.ui.btn_ClearExtractionLimits.clicked.connect(self.DataExtractionLimits)
         self.ui.btn_ClearTable.clicked.connect(self.ClearTable)
         self.ui.btn_CopyData.clicked.connect(self.ExportDataToCSV)
         self.ui.btn_CopyData.setEnabled(False)
@@ -82,6 +83,7 @@ class mywindow(QtWidgets.QMainWindow):
         self.widget_id.setGeometry(self.widget_pos_x, self.widget_pos_y, self.widget_width, self.widget_height)
         self.icon_label.setGeometry(self.label_pos_x, self.label_pos_y, self.image_label_width, self.image_label_height)
         # self.AddDataToTable([[1,2],[3,4]])
+        self.ui.label_status.setText('Not calibrated')
 
     def reset(self):
         #Clearing labels
@@ -89,7 +91,8 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.label_y_select.clear()
         self.ui.label_x_extract.clear()
         self.ui.label_y_extract.clear()
-        self.ui.label_status.clear()
+        self.ui.label_status.setText('Not calibrated')
+        # self.ui.label_status.clear()
 
         #Disabling buttons
         self.ui.btn_x2.setEnabled(False)
@@ -105,10 +108,14 @@ class mywindow(QtWidgets.QMainWindow):
         # self.image_width, self.image_height = None, None
         self.RedSelect, self.GreenSelect, self.BlueSelect = None, None, None
         self.GetDataLimit1, self.GetDataLimit2 = None, None
-        self.TableData = None
+        self.TableData = []
         self.ClearTable()
         x_log, y_log = 0, 0
         self.ScaleFactor = 1.05
+        self.ui.lineEdit_x1.setText('')
+        self.ui.lineEdit_x2.setText('')
+        self.ui.lineEdit_y1.setText('')
+        self.ui.lineEdit_y2.setText('')
         self.ui.infobox.append('Data reset')
 
     # def wheelEvent(self, event):
@@ -222,9 +229,13 @@ class mywindow(QtWidgets.QMainWindow):
         if sender.find('Bottom') != -1:
             self.GetDataLimit1 = None
             self.GetDataLimit1 = [x_pixel,y_pixel]
-        else:
+        elif sender.find('Top') != -1:
             self.GetDataLimit2 = None
             self.GetDataLimit2 = [x_pixel,y_pixel]
+        else:
+            self.GetDataLimit1 = None
+            self.GetDataLimit2 = None
+
 
     def filter_image(self, img, H, S, V):
         # Convert the img to HSV
@@ -333,7 +344,7 @@ class mywindow(QtWidgets.QMainWindow):
         os.chdir(pwd)
 
     def ClearTable(self):
-        self.TableData = None
+        self.TableData = []
         table = self.ui.tableWidget
         table.setColumnCount(2)
         table.setRowCount(0)
@@ -451,7 +462,7 @@ class mywindow(QtWidgets.QMainWindow):
             except:
                 self.ui.infobox.append('Enter value!!')
         if x_calibrated == 1 and y_calibrated == 1:
-            self.ui.label_status.setText('Calibrated!!!')
+            self.ui.label_status.setText('Calibrated')
             self.ui.infobox.append('Calibration done!')
             self.ui.btn_delete_data.setEnabled(True)
             self.clear_marked_points()
@@ -461,7 +472,10 @@ class mywindow(QtWidgets.QMainWindow):
         if x_extracted is not None:
             if y_extracted is not None:
                 data_extracted_list.append((x_extracted,y_extracted))
-                # self.ui.columnView_data.addItem(x_extracted)
+                rounding = int(self.ui.lineEdit_Rounding.text())
+                self.TableData.append([round(x_extracted,rounding),round(y_extracted,rounding)])
+                self.AddDataToTable(self.TableData)
+                #self.ui.columnView_data.addItem(x_extracted)
 
     def delete_last_point(self):
         global data_extracted_list
