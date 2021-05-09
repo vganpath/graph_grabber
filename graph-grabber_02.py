@@ -338,8 +338,12 @@ class mywindow(QtWidgets.QMainWindow):
     def ExportDataToCSV(self):
         df = pd.DataFrame(self.TableData,columns=['x', 'y'])
         pwd = os.getcwd()
-        path = pwd + '/Exported_data'
-        os.chdir(path)
+        try:
+            path = pwd + '/Exported_data'
+            os.chdir(path)
+        except:
+            os.mkdir('Exported_data')
+            os.chdir(path)
         df.to_csv(r'data.csv',index=False)
         os.chdir(pwd)
 
