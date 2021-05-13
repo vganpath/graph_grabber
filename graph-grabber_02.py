@@ -158,6 +158,7 @@ class mywindow(QtWidgets.QMainWindow):
     def clear_marked_points(self):
         self.pixmap = QPixmap(self.filename)
         self.icon_label.setPixmap(self.pixmap)
+        self.DrawROI()
 
     def mark_point(self,x,y):
         # create painter instance with pixmap
@@ -235,7 +236,29 @@ class mywindow(QtWidgets.QMainWindow):
         else:
             self.GetDataLimit1 = None
             self.GetDataLimit2 = None
+            self.clear_marked_points()
+        self.DrawROI()
 
+
+    def DrawROI(self):
+        if self.GetDataLimit1 is not None:
+            if self.GetDataLimit2 is not None:
+                # create painter instance with pixmap
+                self.painterInstance = QtGui.QPainter(self.pixmap)
+                # set rectangle color and thickness
+                self.penRectangle = QtGui.QPen(QtCore.Qt.lightGray)
+                self.penRectangle.setWidth(2)
+
+                # draw rectangle on painter
+                self.painterInstance.setPen(self.penRectangle)
+                xPos, yPos = min(self.GetDataLimit1[0], self.GetDataLimit2[0]), min(self.GetDataLimit1[1],self.GetDataLimit2[1])
+                xLen, yLen = abs(self.GetDataLimit1[0] - self.GetDataLimit2[0]), abs(self.GetDataLimit1[1] - self.GetDataLimit2[1])
+                self.painterInstance.drawRect(xPos, yPos, xLen, yLen)
+
+                # set pixmap onto the label widget
+                self.icon_label.setPixmap(self.pixmap)
+                self.icon_label.show()
+                self.painterInstance.end()
 
     def filter_image(self, img, H, S, V):
         # Convert the img to HSV
@@ -353,6 +376,10 @@ class mywindow(QtWidgets.QMainWindow):
         table.setColumnCount(2)
         table.setRowCount(0)
         self.ui.btn_CopyData.setEnabled(False)
+        try:
+            self.clear_marked_points()
+        except:
+            pass
 
     def AddDataToTable(self, data):
         self.TableData = None
