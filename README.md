@@ -10,4 +10,6 @@ Grabs data from image of a graph
   v. Once all 4 values, 2 for x-sxis and 2 for y-axis have been entered, the program calibrates the image. 
  3. After calibration, click anywhere on the image to get the x- and y-coordinates.
  4. Right click to save the coordinate.
- 5. Click print saved points to print the list of coordinates in python terminal.
+ 5. Select color of 'curve' or data points for autmoatic data extraction.
+ 6. Set limits for the area used for auto data detection.
+ 7. Export exracted data points as csv file.
