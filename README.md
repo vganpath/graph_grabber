@@ -1,5 +1,5 @@
 # Graph_Grabber : Plot Digitizer
-Grabs data from image of a graph
+A tool to digitize plots. After manually configuring the coordinates/axes, the data points can be either manually or automatically extracted from the plot. The user has to select the color of the data points to be digitized.
 
 1. Import an image file. It will get scaled and displayed on the window. At the moment it is not possible to zoom in or out of the image.
 2. Calibrate the image:
