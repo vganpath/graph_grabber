@@ -1,4 +1,4 @@
-# graph_grabber
+# Graph_Grabber : Plot Digitizer
 Grabs data from image of a graph
 
 1. Import an image file. It will get scaled and displayed on the window. At the moment it is not possible to zoom in or out of the image.
